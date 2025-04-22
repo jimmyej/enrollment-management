@@ -30,10 +30,21 @@ import com.mitocode.handlers.StudentHandler;
 @Configuration
 public class RouterConfig {
 
+    private static final String COMMON_PATH_SUFFIX = "/pages";
+
+    private static final String STUDENTS_BASE_PATH = "/api/v1/students";
+    private static final String STUDENTS_PATH_WITH_ID = "/api/v1/students/{id}";
+
+    private static final String COURSES_BASE_PATH = "/api/v1/courses";
+    private static final String COURSES_PATH_WITH_ID = "/api/v1/courses/{id}";
+
+    private static final String ENROLLMENTS_BASE_PATH = "/api/v1/enrollments";
+    private static final String ENROLLMENTS_PATH_WITH_ID = "/api/v1/enrollments/{id}";
+
     @Bean
     @RouterOperations({
             @RouterOperation(
-                    path = "/api/v1/students",
+                    path = STUDENTS_BASE_PATH,
                     produces = {
                             MediaType.APPLICATION_JSON_VALUE
                     },
@@ -54,7 +65,7 @@ public class RouterConfig {
                     )
             ),
             @RouterOperation(
-                    path = "/api/v1/students/pages",
+                    path = STUDENTS_BASE_PATH + COMMON_PATH_SUFFIX,
                     produces = {
                             MediaType.APPLICATION_JSON_VALUE
                     },
@@ -75,7 +86,7 @@ public class RouterConfig {
                     )
             ),
             @RouterOperation(
-                    path = "/api/v1/students/{id}",
+                    path = STUDENTS_PATH_WITH_ID,
                     produces = {
                             MediaType.APPLICATION_JSON_VALUE
                     },
@@ -101,7 +112,7 @@ public class RouterConfig {
                     )
             ),
             @RouterOperation(
-                    path = "/api/v1/students",
+                    path = STUDENTS_BASE_PATH,
                     produces = {
                             MediaType.APPLICATION_JSON_VALUE
                     },
@@ -128,7 +139,7 @@ public class RouterConfig {
                     )
             ),
             @RouterOperation(
-                    path = "/api/v1/students/{id}",
+                    path = STUDENTS_PATH_WITH_ID,
                     produces = {
                             MediaType.APPLICATION_JSON_VALUE
                     },
@@ -155,7 +166,7 @@ public class RouterConfig {
                     )
             ),
             @RouterOperation(
-                    path = "/api/v1/students/{id}/upload",
+                    path = STUDENTS_PATH_WITH_ID +"/upload",
                     produces = {
                             MediaType.ALL_VALUE
                     },
@@ -185,7 +196,7 @@ public class RouterConfig {
                     )
             ),
             @RouterOperation(
-                    path = "/api/v1/students/{id}",
+                    path = STUDENTS_PATH_WITH_ID,
                     produces = {
                             MediaType.APPLICATION_JSON_VALUE
                     },
@@ -212,19 +223,19 @@ public class RouterConfig {
             )
     })
     public RouterFunction<ServerResponse> studentRoutes(StudentHandler handler) {
-        return route(GET("/api/v1/students"), handler::findAll)
-                .andRoute(GET("/api/v1/students/pages"), handler::findPage)
-                .andRoute(GET("/api/v1/students/{id}"), handler::findById)
-                .andRoute(POST("/api/v1/students"), handler::create)
-                .andRoute(PUT("/api/v1/students/{id}"), handler::update)
-                .andRoute(PUT("/api/v1/students/{id}/upload").and(RequestPredicates.accept(MediaType.MULTIPART_FORM_DATA)), handler::upload)
-                .andRoute(DELETE("/api/v1/students/{id}"), handler::delete);
+        return route(GET(STUDENTS_BASE_PATH), handler::findAll)
+                .andRoute(GET(STUDENTS_BASE_PATH + COMMON_PATH_SUFFIX), handler::findPage)
+                .andRoute(GET(STUDENTS_PATH_WITH_ID), handler::findById)
+                .andRoute(POST(STUDENTS_BASE_PATH), handler::create)
+                .andRoute(PUT(STUDENTS_PATH_WITH_ID), handler::update)
+                .andRoute(PUT(STUDENTS_PATH_WITH_ID +"/upload").and(RequestPredicates.accept(MediaType.MULTIPART_FORM_DATA)), handler::upload)
+                .andRoute(DELETE(STUDENTS_PATH_WITH_ID), handler::delete);
     }
 
     @Bean
     @RouterOperations({
             @RouterOperation(
-                    path = "/api/v1/courses",
+                    path = COURSES_BASE_PATH,
                     produces = {
                             MediaType.APPLICATION_JSON_VALUE
                     },
@@ -245,7 +256,7 @@ public class RouterConfig {
                     )
             ),
             @RouterOperation(
-                    path = "/api/v1/courses/pages",
+                    path = COURSES_BASE_PATH+"/pages",
                     produces = {
                             MediaType.APPLICATION_JSON_VALUE
                     },
@@ -266,7 +277,7 @@ public class RouterConfig {
                     )
             ),
             @RouterOperation(
-                    path = "/api/v1/courses/{id}",
+                    path = COURSES_PATH_WITH_ID,
                     produces = {
                             MediaType.APPLICATION_JSON_VALUE
                     },
@@ -292,7 +303,7 @@ public class RouterConfig {
                     )
             ),
             @RouterOperation(
-                    path = "/api/v1/courses",
+                    path = COURSES_BASE_PATH,
                     produces = {
                             MediaType.APPLICATION_JSON_VALUE
                     },
@@ -322,7 +333,7 @@ public class RouterConfig {
                     )
             ),
             @RouterOperation(
-                    path = "/api/v1/courses/{id}",
+                    path = COURSES_PATH_WITH_ID,
                     produces = {
                             MediaType.APPLICATION_JSON_VALUE
                     },
@@ -349,7 +360,7 @@ public class RouterConfig {
                     )
             ),
             @RouterOperation(
-                    path = "/api/v1/courses/{id}",
+                    path = COURSES_PATH_WITH_ID,
                     produces = {
                             MediaType.APPLICATION_JSON_VALUE
                     },
@@ -376,18 +387,18 @@ public class RouterConfig {
             )
     })
     public RouterFunction<ServerResponse> courseRoutes(CourseHandler handler) {
-        return route(GET("/api/v1/courses"), handler::findAll)
-                .andRoute(GET("/api/v1/courses/pages"), handler::findPage)
-                .andRoute(GET("/api/v1/courses/{id}"), handler::findById)
-                .andRoute(POST("/api/v1/courses"), handler::create)
-                .andRoute(PUT("/api/v1/courses/{id}"), handler::update)
-                .andRoute(DELETE("/api/v1/courses/{id}"), handler::delete);
+        return route(GET(COURSES_BASE_PATH), handler::findAll)
+                .andRoute(GET(COURSES_BASE_PATH + COMMON_PATH_SUFFIX), handler::findPage)
+                .andRoute(GET(COURSES_PATH_WITH_ID), handler::findById)
+                .andRoute(POST(COURSES_BASE_PATH), handler::create)
+                .andRoute(PUT(COURSES_PATH_WITH_ID), handler::update)
+                .andRoute(DELETE(COURSES_PATH_WITH_ID), handler::delete);
     }
 
     @Bean
     @RouterOperations({
             @RouterOperation(
-                    path = "/api/v1/enrollments",
+                    path = ENROLLMENTS_BASE_PATH,
                     produces = {
                             MediaType.APPLICATION_JSON_VALUE
                     },
@@ -408,7 +419,7 @@ public class RouterConfig {
                     )
             ),
             @RouterOperation(
-                    path = "/api/v1/enrollments/pages",
+                    path = ENROLLMENTS_BASE_PATH + COMMON_PATH_SUFFIX,
                     produces = {
                             MediaType.APPLICATION_JSON_VALUE
                     },
@@ -429,7 +440,7 @@ public class RouterConfig {
                     )
             ),
             @RouterOperation(
-                    path = "/api/v1/enrollments/{id}",
+                    path = ENROLLMENTS_PATH_WITH_ID,
                     produces = {
                             MediaType.APPLICATION_JSON_VALUE
                     },
@@ -455,7 +466,7 @@ public class RouterConfig {
                     )
             ),
             @RouterOperation(
-                    path = "/api/v1/enrollments",
+                    path = ENROLLMENTS_BASE_PATH,
                     produces = {
                             MediaType.APPLICATION_JSON_VALUE
                     },
@@ -485,7 +496,7 @@ public class RouterConfig {
                     )
             ),
             @RouterOperation(
-                    path = "/api/v1/enrollments/{id}",
+                    path = ENROLLMENTS_PATH_WITH_ID,
                     produces = {
                             MediaType.APPLICATION_JSON_VALUE
                     },
@@ -512,7 +523,7 @@ public class RouterConfig {
                     )
             ),
             @RouterOperation(
-                    path = "/api/v1/enrollments/{id}",
+                    path = ENROLLMENTS_PATH_WITH_ID,
                     produces = {
                             MediaType.APPLICATION_JSON_VALUE
                     },
@@ -539,12 +550,12 @@ public class RouterConfig {
             )
     })
     public RouterFunction<ServerResponse> enrollmentRoutes(EnrollmentHandler handler) {
-        return route(GET("/api/v1/enrollments"), handler::findAll)
-                .andRoute(GET("/api/v1/enrollments/pages"), handler::findPage)
-                .andRoute(GET("/api/v1/enrollments/{id}"), handler::findById)
-                .andRoute(POST("/api/v1/enrollments"), handler::create)
-                .andRoute(PUT("/api/v1/enrollments/{id}"), handler::update)
-                .andRoute(DELETE("/api/v1/enrollments/{id}"), handler::delete);
+        return route(GET(ENROLLMENTS_BASE_PATH), handler::findAll)
+                .andRoute(GET(ENROLLMENTS_BASE_PATH + COMMON_PATH_SUFFIX), handler::findPage)
+                .andRoute(GET(ENROLLMENTS_PATH_WITH_ID), handler::findById)
+                .andRoute(POST(ENROLLMENTS_BASE_PATH), handler::create)
+                .andRoute(PUT(ENROLLMENTS_PATH_WITH_ID), handler::update)
+                .andRoute(DELETE(ENROLLMENTS_PATH_WITH_ID), handler::delete);
     }
 	
 }

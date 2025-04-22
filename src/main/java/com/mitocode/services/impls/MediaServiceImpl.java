@@ -9,7 +9,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.codec.multipart.FilePart;
 import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.io.IOException;
@@ -21,8 +20,12 @@ public class MediaServiceImpl implements MediaService {
 
     Logger logger = LoggerFactory.getLogger(MediaServiceImpl.class);
 
+    private final MediaConfig mediaConfig;
+
     @Autowired
-    private MediaConfig mediaConfig;
+    public MediaServiceImpl(MediaConfig mediaConfig){
+        this.mediaConfig = mediaConfig;
+    }
 
     public JSONObject uploadImage(FilePart image, String publicId) {
         File file = null;
@@ -42,7 +45,8 @@ public class MediaServiceImpl implements MediaService {
                 return null;
             } finally {
                 if(file != null){
-                    logger.info("Temporary file deleted: {}",  file.delete());
+                    boolean deleted = file.delete();
+                    logger.info("Temporary file deleted: {}",  deleted);
                 }
             }
         } else {

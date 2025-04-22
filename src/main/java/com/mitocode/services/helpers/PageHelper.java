@@ -28,11 +28,11 @@ public class PageHelper<T> {
 
     @JsonProperty
     public boolean first() {
-        return pageNumber == Integer.parseInt(FIRST_PAGE_NUM);
+        return pageNumber == 0;
     }
 
     @JsonProperty
     public boolean last() {
-        return (pageNumber + 1) * pageSize >= totalElements;
+        return (long) (pageNumber + 1) * pageSize >= totalElements;
     }
 }

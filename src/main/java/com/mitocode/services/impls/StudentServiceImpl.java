@@ -10,9 +10,13 @@ import com.mitocode.services.StudentService;
 
 @Service
 public class StudentServiceImpl extends CrudServiceImpl<Student, String> implements StudentService {
-	
+
+	private final StudentRepository customerRepository;
+
 	@Autowired
-	private StudentRepository customerRepository;
+	public StudentServiceImpl(StudentRepository customerRepository){
+		this.customerRepository = customerRepository;
+	}
 
 	protected CrudRepository<Student, String> getCrudRepository() {
 		return customerRepository;

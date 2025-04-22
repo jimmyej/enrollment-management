@@ -1,10 +1,11 @@
 package com.mitocode.services.impls;
 
-
 import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -26,15 +27,19 @@ import reactor.core.publisher.Mono;
 
 @Service
 public class EnrollmentServiceImpl extends CrudServiceImpl<Enrollment, String> implements EnrollmentService {
-	
-	@Autowired
-	private EnrollmentRepository enrollmentRepository;
-	
-    @Autowired
-    private StudentRepository studentRepository;
 
-    @Autowired
-    private CourseRepository courseRepository;
+	Logger logger = LoggerFactory.getLogger(EnrollmentServiceImpl.class);
+
+	private final EnrollmentRepository enrollmentRepository;
+    private final StudentRepository studentRepository;
+    private final CourseRepository courseRepository;
+
+	@Autowired
+	public EnrollmentServiceImpl(EnrollmentRepository enrollmentRepository, StudentRepository studentRepository, CourseRepository courseRepository){
+		this.enrollmentRepository = enrollmentRepository;
+		this.studentRepository = studentRepository;
+		this.courseRepository = courseRepository;
+	}
 
 	protected CrudRepository<Enrollment, String> getCrudRepository() {
 		return enrollmentRepository;
@@ -52,21 +57,17 @@ public class EnrollmentServiceImpl extends CrudServiceImpl<Enrollment, String> i
                         })
                 )
 		        //Getting course
-		        .flatMap(inv -> {
-		            return Flux.fromIterable(inv.getCourses()).flatMap(item -> {
-		                return courseRepository.findById(item.getId())
-		                        .map(p -> {
-		                            item.setId(p.getId());
-		                            item.setName(p.getName());
-		                            item.setAcronym(p.getAcronym());
-		                            item.setStatus(p.isStatus());
-		                            return item;
-		                        });
-		            }).collectList().flatMap(list -> {
-		                inv.setCourses(list);
-		                return Mono.just(inv);
-		            });
-		        }).map(f -> {
+		        .flatMap(inv -> Flux.fromIterable(inv.getCourses()).flatMap(item -> courseRepository.findById(item.getId())
+                        .map(p -> {
+                            item.setId(p.getId());
+                            item.setName(p.getName());
+                            item.setAcronym(p.getAcronym());
+                            item.setStatus(p.isStatus());
+                            return item;
+                        })).collectList().flatMap(list -> {
+                    inv.setCourses(list);
+                    return Mono.just(inv);
+                })).map(f -> {
                     InputStream stream;
                     try {
                         Map<String, Object> parameters = new HashMap<>();
@@ -77,7 +78,7 @@ public class EnrollmentServiceImpl extends CrudServiceImpl<Enrollment, String> i
                         JasperPrint print = JasperFillManager.fillReport(report, parameters, new JRBeanCollectionDataSource(f.getCourses()));
                         return JasperExportManager.exportReportToPdf(print);
                     } catch (Exception e) {
-                        e.printStackTrace();
+						logger.error(e.getMessage());
                     }
                     return new byte[0];
                 });

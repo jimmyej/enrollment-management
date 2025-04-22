@@ -11,9 +11,9 @@ import com.mitocode.services.helpers.PageHelper;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-public abstract class CrudServiceImpl<T, ID> implements CrudService<T, ID> {
+public abstract class CrudServiceImpl<T, I> implements CrudService<T, I> {
 	
-	protected abstract CrudRepository<T, ID> getCrudRepository();
+	protected abstract CrudRepository<T, I> getCrudRepository();
 	
     public Mono<T> save(T t) {
         return getCrudRepository().save(t);
@@ -27,11 +27,11 @@ public abstract class CrudServiceImpl<T, ID> implements CrudService<T, ID> {
         return getCrudRepository().findAll();
     }
 
-    public Mono<T> findById(ID id) {
+    public Mono<T> findById(I id) {
         return getCrudRepository().findById(id);
     }
 
-    public Mono<Void> delete(ID id) {
+    public Mono<Void> delete(I id) {
         return getCrudRepository().deleteById(id);
     }
     
@@ -41,7 +41,7 @@ public abstract class CrudServiceImpl<T, ID> implements CrudService<T, ID> {
                 .map(list -> 
                 	new PageHelper<>(
                         list.stream()
-                                .skip(page.getPageNumber() * page.getPageSize())
+                                .skip((long) page.getPageNumber() * page.getPageSize())
                                 .limit(page.getPageSize())
                                 .collect(Collectors.toList()),
                         page.getPageNumber(), page.getPageSize(), list.size()

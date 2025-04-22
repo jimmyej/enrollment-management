@@ -20,12 +20,15 @@ import static org.springframework.web.reactive.function.BodyInserters.fromValue;
 
 @Component
 public class EnrollmentHandler {
-	
-	@Autowired
-	private EnrollmentService service;
 
-    @Autowired
-    private RequestValidator requestValidator;
+	private final EnrollmentService service;
+    private final RequestValidator requestValidator;
+
+	@Autowired
+	public EnrollmentHandler(EnrollmentService service, RequestValidator requestValidator){
+		this.service = service;
+		this.requestValidator = requestValidator;
+	}
     
     public Mono<ServerResponse> findAll(ServerRequest req) {
         return ServerResponse

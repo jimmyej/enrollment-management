@@ -10,8 +10,12 @@ import org.springframework.web.multipart.MultipartFile;
 @RequestMapping("/api/v2/students")
 public class StudentController {
 
+    private final StudentService studentService;
+
     @Autowired
-    private StudentService studentService;
+    public StudentController(StudentService studentService){
+        this.studentService = studentService;
+    }
 
     @PutMapping(value = {"/{id}/upload", "/{id}/upload/{publicId}"})
     Student uploadPhoto(@PathVariable String id, @PathVariable(required = false) String publicId, @RequestParam MultipartFile file){

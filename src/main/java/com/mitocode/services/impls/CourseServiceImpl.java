@@ -10,11 +10,15 @@ import com.mitocode.services.CourseService;
 
 @Service
 public class CourseServiceImpl extends CrudServiceImpl<Course, String> implements CourseService {
-	
+
+	private final CourseRepository courseRepository;
+
 	@Autowired
-	private CourseRepository dishRepository;
+	public CourseServiceImpl(CourseRepository courseRepository){
+		this.courseRepository = courseRepository;
+	}
 
 	protected CrudRepository<Course, String> getCrudRepository() {
-		return dishRepository;
+		return courseRepository;
 	}
 }

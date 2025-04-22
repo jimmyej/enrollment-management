@@ -24,6 +24,7 @@ import java.util.List;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 
+@SuppressWarnings("unused")
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, classes = EnrollmentManagementApplication.class)
 @Import(CourseServiceImpl.class)
 class CourseFunctionalTest {

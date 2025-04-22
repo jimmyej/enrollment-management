@@ -15,8 +15,12 @@ import reactor.core.publisher.Mono;
 @Component
 public class RequestValidator {
 
+    private final Validator validator;
+
 	@Autowired
-    private Validator validator;
+	public RequestValidator(Validator validator){
+		this.validator = validator;
+	}
 	
 	public <T> Mono<T> validate(T t) {
 		if(t == null) {
@@ -25,7 +29,7 @@ public class RequestValidator {
 		
 		Set<ConstraintViolation<T>> violations = validator.validate(t);
 		
-        if( (violations == null || violations.isEmpty() ) && violations.size() == 0 ) {
+        if( violations == null || violations.isEmpty() ) {
             return Mono.just(t);
         }
 

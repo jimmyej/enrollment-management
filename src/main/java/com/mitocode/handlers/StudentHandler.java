@@ -43,24 +43,28 @@ import static org.springframework.web.reactive.function.BodyInserters.fromValue;
 public class StudentHandler {
 
 	Logger logger = LoggerFactory.getLogger(StudentHandler.class);
-	
-	@Autowired
-	private StudentService service;
+
+	private final StudentService studentService;
+	private final MediaService mediaService;
+	private final MediaConfig mediaConfig;
+    private final RequestValidator requestValidator;
+
+	private static final String PUBLIC_ID_LABEL = "public_id";
+	private static final String ITEM_ID = "id";
 
 	@Autowired
-	private MediaService mediaService;
-
-	@Autowired
-	private MediaConfig mediaConfig;
-
-	@Autowired
-    private RequestValidator requestValidator;
+	public StudentHandler(StudentService studentService, MediaService mediaService, MediaConfig mediaConfig, RequestValidator requestValidator){
+		this.studentService = studentService;
+		this.mediaService = mediaService;
+		this.mediaConfig = mediaConfig;
+		this.requestValidator = requestValidator;
+	}
     
     public Mono<ServerResponse> findAll(ServerRequest req) {
         return ServerResponse
                 .ok()
                 .contentType(MediaType.APPLICATION_JSON)
-                .body(service.findAll(), Student.class);
+                .body(studentService.findAll(), Student.class);
     }
 
 	public Mono<ServerResponse> findPage(ServerRequest req) {
@@ -70,12 +74,12 @@ public class StudentHandler {
 		return ServerResponse
 				.ok()
 				.contentType(MediaType.APPLICATION_JSON)
-				.body(service.findPage(pageRequest), Student.class);
+				.body(studentService.findPage(pageRequest), Student.class);
 	}
     
     public Mono<ServerResponse> findById(ServerRequest req) {
-    	String id = req.pathVariable("id");
-        return service.findById(id)
+    	String id = req.pathVariable(ITEM_ID);
+        return studentService.findById(id)
                 .flatMap(p -> ServerResponse
                             .ok()
                             .contentType(MediaType.APPLICATION_JSON)
@@ -88,7 +92,7 @@ public class StudentHandler {
     	Mono<Student> monoStudent = req.bodyToMono(Student.class);
     	return monoStudent
     			.flatMap(requestValidator::validate)
-    			.flatMap(service::save)
+    			.flatMap(studentService::save)
     			.flatMap( p -> ServerResponse.created(URI.create(req.uri().toString().concat("/").concat(p.getId())))
     					.contentType(MediaType.APPLICATION_JSON)
     					.body(fromValue(p))
@@ -96,9 +100,9 @@ public class StudentHandler {
     }
     
     public Mono<ServerResponse> update(ServerRequest req){
-    	String id = req.pathVariable("id");
+    	String id = req.pathVariable(ITEM_ID);
     	Mono<Student> monoStudent = req.bodyToMono(Student.class);
-        Mono<Student> monoBD = service.findById(id);
+        Mono<Student> monoBD = studentService.findById(id);
     	
     	return monoBD
     			.zipWith(monoStudent, (db, s) -> {
@@ -112,7 +116,7 @@ public class StudentHandler {
     				return db;
     			})
                 .flatMap(requestValidator::validate)
-                .flatMap(service::update)
+                .flatMap(studentService::update)
                 .flatMap(p -> ServerResponse.ok()
                         .contentType(MediaType.APPLICATION_JSON)
                         .body(fromValue(p))
@@ -121,26 +125,26 @@ public class StudentHandler {
     }
     
     public Mono<ServerResponse> delete(ServerRequest req){
-    	String id = req.pathVariable("id");
-        return service.findById(id)
-                .flatMap(p -> service.delete(p.getId())
+    	String id = req.pathVariable(ITEM_ID);
+        return studentService.findById(id)
+                .flatMap(p -> studentService.delete(p.getId())
                     .then(ServerResponse.noContent().build())
                 )
                 .switchIfEmpty(ServerResponse.notFound().build());
     }
 
 	public Mono<ServerResponse> upload2(ServerRequest req){
-		String id = req.pathVariable("id");
-		String publicId = req.queryParam("public_id").toString();
+		String id = req.pathVariable(ITEM_ID);
+		String publicId = req.queryParam(PUBLIC_ID_LABEL).toString();
 
-		Mono<Student> monoBD = service.findById(id);
+		Mono<Student> monoBD = studentService.findById(id);
 		Mono<Student> monoStudent = req.body(BodyExtractors.toParts()).collectList().flatMap(parts -> {
 			try {
 				FilePart image = (FilePart) parts.get(0);
 
 				JSONObject json = mediaService.uploadImage(image, publicId);
 				String url = json.getString("url");
-				String publicIdValue = json.getString("public_id");
+				String publicIdValue = json.getString(PUBLIC_ID_LABEL);
 
 				Student student = new Student();
 				student.setUrlPhoto(url);
@@ -158,7 +162,7 @@ public class StudentHandler {
 					db.setPublicId(s.getPublicId());
 					return db;
 				})
-				.flatMap(service::update)
+				.flatMap(studentService::update)
 				.flatMap(p -> ServerResponse.ok()
 						.contentType(MediaType.APPLICATION_JSON)
 						.body(fromValue(p))
@@ -167,8 +171,8 @@ public class StudentHandler {
 	}
 
 	public Mono<ServerResponse> upload3(ServerRequest req){
-		String id = req.pathVariable("id");
-		String publicId = req.queryParam("public_id").toString();
+		String id = req.pathVariable(ITEM_ID);
+		String publicId = req.queryParam(PUBLIC_ID_LABEL).toString();
 
 		MultiValueMap<String, Part> formData = req.body(BodyExtractors.toMultipartData()).block();
 		FilePart fp = (FilePart) formData.toSingleValueMap().get("file");
@@ -185,18 +189,18 @@ public class StudentHandler {
 			Map<String, Object> uploadResult = mediaConfig.cloudinaryConfig().uploader().upload(file, ObjectUtils.asMap("resource_type", "auto"));
 			JSONObject json = new JSONObject(uploadResult);
 			String url = json.getString("url");
-			String publicIdValue = json.getString("public_id");
+			String publicIdValue = json.getString(PUBLIC_ID_LABEL);
 
 			student = new Student();
 			student.setUrlPhoto(url);
 			student.setPublicId(publicIdValue);
 		} catch (IOException e) {
-			e.printStackTrace();
+			logger.error(e.getMessage());
 		} finally {
 			file.delete();
 		}
 
-		Mono<Student> monoBD = service.findById(id);
+		Mono<Student> monoBD = studentService.findById(id);
 		Mono<Student> studentMono = Mono.just(student);
 
 		return studentMono.zipWith(monoBD, (s, db) -> {
@@ -204,7 +208,7 @@ public class StudentHandler {
 					db.setPublicId(s.getPublicId());
 					return db;
 				})
-				.flatMap(service::update)
+				.flatMap(studentService::update)
 				.flatMap(p -> ServerResponse.ok()
 						.contentType(MediaType.APPLICATION_JSON)
 						.body(fromValue(p))
@@ -228,10 +232,10 @@ public class StudentHandler {
 //	}
 
 	public Mono<ServerResponse> upload(ServerRequest req){
-		String id = req.pathVariable("id");
-		String publicId = req.queryParam("public_id").toString();
+		String id = req.pathVariable(ITEM_ID);
+		String publicId = req.queryParam(PUBLIC_ID_LABEL).toString();
 
-		Mono<Student> monoBD = service.findById(id);
+		Mono<Student> monoBD = studentService.findById(id);
 		Mono<Student> monoStudent = req.body(BodyExtractors.toMultipartData())//req.body(BodyExtractors.toParts()).collectList()
 
 				.flatMap(parts -> {
@@ -259,19 +263,18 @@ public class StudentHandler {
 								try {
 									mediaConfig.cloudinaryConfig().uploader().destroy(publicId, ObjectUtils.emptyMap());
 								} catch (IOException e) {
-									e.printStackTrace();
+									logger.error(e.getMessage());
 								}
 							}
 							try {
 								Map<String, Object> uploadResult = mediaConfig.cloudinaryConfig().uploader().upload(f, ObjectUtils.emptyMap());
 								JSONObject json = new JSONObject(uploadResult);
 								String url = json.getString("url");
-								String publicIdValue = json.getString("public_id");
+								String publicIdValue = json.getString(PUBLIC_ID_LABEL);
 								student = new Student();
 								student.setUrlPhoto(url);
 								student.setPublicId(publicIdValue);
-								logger.info("Student", student.toString());
-								//return Mono.just(student);
+								logger.info("Student {}", student);
 							} catch (IOException e) {
 								logger.error(e.getMessage());
 								return Mono.error(e);
@@ -287,7 +290,7 @@ public class StudentHandler {
 					db.setPublicId(s.getPublicId());
 					return db;
 				})
-				.flatMap(service::update)
+				.flatMap(studentService::update)
 				.flatMap(p -> ServerResponse.ok()
 						.contentType(MediaType.APPLICATION_JSON)
 						.body(fromValue(p))
