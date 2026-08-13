@@ -22,6 +22,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.codec.multipart.FilePart;
 import org.springframework.http.codec.multipart.Part;
 import org.springframework.stereotype.Component;
@@ -175,6 +176,11 @@ public class StudentHandler {
 		String id = req.pathVariable(ITEM_ID);
 		String publicId = req.queryParam(PUBLIC_ID_LABEL).toString();
 
+		if (!mediaConfig.hasAnyCloudinaryConfig()) {
+			return ServerResponse.status(HttpStatus.INTERNAL_SERVER_ERROR)
+				.contentType(MediaType.TEXT_PLAIN)
+				.body(fromValue("Cloudinary not configured. Set CLOUD_NAME/API_KEY/API_SECRET env vars or CLOUDINARY_URL."));
+		}
 		MultiValueMap<String, Part> formData = req.body(BodyExtractors.toMultipartData()).block();
 		FilePart fp = (FilePart) formData.toSingleValueMap().get("file");
 		Path path = Paths.get("/Users/jimmy/tmp/");
@@ -237,6 +243,11 @@ public class StudentHandler {
 		String publicId = req.queryParam(PUBLIC_ID_LABEL).toString();
 
 		Mono<Student> monoBD = studentService.findById(id);
+		if (!mediaConfig.hasAnyCloudinaryConfig()) {
+			return ServerResponse.status(HttpStatus.INTERNAL_SERVER_ERROR)
+				.contentType(MediaType.TEXT_PLAIN)
+				.body(fromValue("Cloudinary not configured. Set CLOUD_NAME/API_KEY/API_SECRET env vars or CLOUDINARY_URL."));
+		}
 		Mono<Student> monoStudent = req.body(BodyExtractors.toMultipartData())//req.body(BodyExtractors.toParts()).collectList()
 
 				.flatMap(parts -> {
@@ -304,6 +315,11 @@ public class StudentHandler {
 	public Mono<ServerResponse> uploadReactive(ServerRequest req) {
 		String id = req.pathVariable(ITEM_ID);
 		Mono<Student> monoBD = studentService.findById(id);
+		if (!mediaConfig.hasAnyCloudinaryConfig()) {
+			return ServerResponse.status(HttpStatus.INTERNAL_SERVER_ERROR)
+				.contentType(MediaType.TEXT_PLAIN)
+				.body(fromValue("Cloudinary not configured. Set CLOUD_NAME/API_KEY/API_SECRET env vars or CLOUDINARY_URL."));
+		}
 
 		Mono<java.io.File> uploadedFileMono = req.body(BodyExtractors.toMultipartData())
 			.flatMap(parts -> {

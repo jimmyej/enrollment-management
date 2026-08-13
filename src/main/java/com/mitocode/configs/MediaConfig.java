@@ -14,13 +14,13 @@ public class MediaConfig {
     private static final Logger logger = LoggerFactory.getLogger(MediaConfig.class);
 
     // Provide empty defaults so Spring won't fail resolving the placeholders.
-    @Value("${CLOUD_NAME:}")
+    @Value("${app.cloudinary.cloudname}")
     private String cloudName;
 
-    @Value("${API_KEY:}")
+    @Value("${app.cloudinary.apikey}")
     private String apiKey;
 
-    @Value("${API_SECRET:}")
+    @Value("${app.cloudinary.apisecret}")
     private String apiSecret;
 
     @Bean
@@ -37,5 +37,17 @@ public class MediaConfig {
                 "api_key", apiKey,
                 "api_secret", apiSecret
         ));
+    }
+
+    // Helper to signal whether explicit credentials are available
+    public boolean hasCloudinaryCredentials() {
+        return cloudName != null && !cloudName.isEmpty()
+                && apiKey != null && !apiKey.isEmpty()
+                && apiSecret != null && !apiSecret.isEmpty();
+    }
+
+    // True if either explicit credentials or CLOUDINARY_URL env var exists
+    public boolean hasAnyCloudinaryConfig() {
+        return hasCloudinaryCredentials() || System.getenv("CLOUDINARY_URL") != null;
     }
 }
