@@ -196,6 +196,39 @@ public class RouterConfig {
                     )
             ),
             @RouterOperation(
+                    path = STUDENTS_PATH_WITH_ID +"/photo-reactive",
+                    produces = {
+                            MediaType.APPLICATION_JSON_VALUE
+                    },
+                    consumes = {
+                            MediaType.MULTIPART_FORM_DATA_VALUE
+                    },
+                    method = RequestMethod.POST,
+                    beanClass = StudentHandler.class,
+                    beanMethod = "uploadReactive",
+                    operation = @Operation(
+                            operationId = "uploadReactive",
+                            responses = {
+                                    @ApiResponse(
+                                            responseCode = "200",
+                                            description = "successful operation",
+                                            content = @Content(schema = @Schema(
+                                                    implementation = Student.class
+                                            ))
+                                    )
+                            },
+                            requestBody = @RequestBody(
+                                    content = @Content(schema = @Schema(
+                                            implementation = Student.class
+                                    ))
+                            ),
+                            parameters = {
+                                    @Parameter(in = ParameterIn.PATH,name = "id")
+                            }
+
+                    )
+            ),
+            @RouterOperation(
                     path = STUDENTS_PATH_WITH_ID,
                     produces = {
                             MediaType.APPLICATION_JSON_VALUE
@@ -229,6 +262,7 @@ public class RouterConfig {
                 .andRoute(POST(STUDENTS_BASE_PATH), handler::create)
                 .andRoute(PUT(STUDENTS_PATH_WITH_ID), handler::update)
                 .andRoute(PUT(STUDENTS_PATH_WITH_ID +"/upload").and(RequestPredicates.accept(MediaType.MULTIPART_FORM_DATA)), handler::upload)
+                .andRoute(POST(STUDENTS_PATH_WITH_ID +"/photo-reactive").and(RequestPredicates.accept(MediaType.MULTIPART_FORM_DATA)), handler::uploadReactive)
                 .andRoute(DELETE(STUDENTS_PATH_WITH_ID), handler::delete);
     }
 
