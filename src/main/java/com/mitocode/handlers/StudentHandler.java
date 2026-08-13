@@ -36,6 +36,7 @@ import com.mitocode.services.StudentService;
 import com.mitocode.validators.RequestValidator;
 
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 import static org.springframework.web.reactive.function.BodyInserters.fromValue;
 
@@ -286,6 +287,55 @@ public class StudentHandler {
 
 		return monoBD
 				.zipWith(monoStudent, (db, s) -> {
+					db.setUrlPhoto(s.getUrlPhoto());
+					db.setPublicId(s.getPublicId());
+					return db;
+				})
+				.flatMap(studentService::update)
+				.flatMap(p -> ServerResponse.ok()
+						.contentType(MediaType.APPLICATION_JSON)
+						.body(fromValue(p))
+				)
+				.switchIfEmpty(ServerResponse.notFound().build());
+	}
+
+	// Reactive, non-blocking upload: saves incoming multipart file, uploads to Cloudinary on boundedElastic,
+	// updates student doc and returns response. Temporary file is deleted after upload.
+	public Mono<ServerResponse> uploadReactive(ServerRequest req) {
+		String id = req.pathVariable(ITEM_ID);
+		Mono<Student> monoBD = studentService.findById(id);
+
+		Mono<java.io.File> uploadedFileMono = req.body(BodyExtractors.toMultipartData())
+			.flatMap(parts -> {
+				org.springframework.util.MultiValueMap<String, Part> map = parts;
+				Part part = map.toSingleValueMap().get("file");
+				if (!(part instanceof FilePart)) {
+					return Mono.error(new IllegalArgumentException("Missing file part named 'file'"));
+				}
+				FilePart filePart = (FilePart) part;
+				return Mono.fromCallable(() -> java.nio.file.Files.createTempFile("upload-", filePart.filename()))
+					.subscribeOn(Schedulers.boundedElastic())
+					.flatMap(path -> filePart.transferTo(path).thenReturn(path.toFile()));
+			});
+
+		Mono<Student> studentFromUpload = uploadedFileMono.flatMap(file ->
+			Mono.fromCallable(() -> {
+				java.util.Map<String, Object> uploadResult = mediaConfig.cloudinaryConfig().uploader().upload(file, ObjectUtils.asMap("resource_type", "auto"));
+				org.cloudinary.json.JSONObject json = new org.cloudinary.json.JSONObject(uploadResult);
+				String url = json.getString("url");
+				String publicIdValue = json.getString(PUBLIC_ID_LABEL);
+				Student student = new Student();
+				student.setUrlPhoto(url);
+				student.setPublicId(publicIdValue);
+				return student;
+			}).subscribeOn(Schedulers.boundedElastic())
+			.doFinally(signal -> {
+				try { if (file != null && file.exists()) file.delete(); } catch (Exception e) { logger.error(e.getMessage()); }
+			})
+		);
+
+		return monoBD
+				.zipWith(studentFromUpload, (db, s) -> {
 					db.setUrlPhoto(s.getUrlPhoto());
 					db.setPublicId(s.getPublicId());
 					return db;
