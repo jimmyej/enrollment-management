@@ -6,6 +6,7 @@ import static org.springframework.web.reactive.function.server.RouterFunctions.r
 import com.mitocode.documents.Course;
 import com.mitocode.documents.Enrollment;
 import com.mitocode.documents.Student;
+import com.mitocode.handlers.AuthHandler;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.enums.ParameterIn;
@@ -562,9 +563,43 @@ public class RouterConfig {
     }
     
     @Bean
-    public org.springframework.web.reactive.function.server.RouterFunction<ServerResponse> authRoutes(com.mitocode.handlers.AuthHandler handler) {
-        return route(org.springframework.web.reactive.function.server.RequestPredicates.POST("/api/v1/auth/sign-in").and(org.springframework.web.reactive.function.server.RequestPredicates.accept(MediaType.APPLICATION_JSON)), handler::login)
-                .andRoute(org.springframework.web.reactive.function.server.RequestPredicates.POST("/api/v1/auth/sign-up").and(org.springframework.web.reactive.function.server.RequestPredicates.accept(MediaType.APPLICATION_JSON)), handler::register);
+    @RouterOperations({
+            @RouterOperation(
+                    path = "/api/v1/auth/sign-in",
+                    produces = { MediaType.APPLICATION_JSON_VALUE },
+                    consumes = { MediaType.APPLICATION_JSON_VALUE },
+                    method = RequestMethod.POST,
+                    beanClass = AuthHandler.class,
+                    beanMethod = "login",
+                    operation = @Operation(
+                            operationId = "signIn",
+                            requestBody = @RequestBody(content = @Content(schema = @Schema(implementation = com.mitocode.security.AuthRequest.class))),
+                            responses = {
+                                    @ApiResponse(responseCode = "200", description = "Successful authentication", content = @Content(schema = @Schema(implementation = com.mitocode.security.AuthResponse.class))),
+                                    @ApiResponse(responseCode = "401", description = "Invalid credentials")
+                            }
+                    )
+            ),
+            @RouterOperation(
+                    path = "/api/v1/auth/sign-up",
+                    produces = { MediaType.APPLICATION_JSON_VALUE },
+                    consumes = { MediaType.APPLICATION_JSON_VALUE },
+                    method = RequestMethod.POST,
+                    beanClass = AuthHandler.class,
+                    beanMethod = "register",
+                    operation = @Operation(
+                            operationId = "signUp",
+                            requestBody = @RequestBody(content = @Content(schema = @Schema(implementation = com.mitocode.documents.User.class))),
+                            responses = {
+                                    @ApiResponse(responseCode = "200", description = "User created", content = @Content(schema = @Schema(implementation = com.mitocode.documents.User.class))),
+                                    @ApiResponse(responseCode = "409", description = "Username already exists")
+                            }
+                    )
+            )
+    })
+    public RouterFunction<ServerResponse> authRoutes(AuthHandler handler) {
+        return route(POST("/api/v1/auth/sign-in").and(accept(MediaType.APPLICATION_JSON)), handler::login)
+                .andRoute(POST("/api/v1/auth/sign-up").and(accept(MediaType.APPLICATION_JSON)), handler::register);
     }
 
 }
