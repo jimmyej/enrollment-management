@@ -14,13 +14,13 @@ public class MediaConfig {
     private static final Logger logger = LoggerFactory.getLogger(MediaConfig.class);
 
     // Provide empty defaults so Spring won't fail resolving the placeholders.
-    @Value("${app.cloudinary.cloudname}")
+    @Value("${CLOUD_NAME:}")
     private String cloudName;
 
-    @Value("${app.cloudinary.apikey}")
+    @Value("${API_KEY:}")
     private String apiKey;
 
-    @Value("${app.cloudinary.apisecret}")
+    @Value("${API_SECRET:}")
     private String apiSecret;
 
     @Bean
