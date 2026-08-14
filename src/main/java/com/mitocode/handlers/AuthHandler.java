@@ -52,7 +52,11 @@ public class AuthHandler {
                     }
                     String token = jwtUtil.generateToken(user);
                     AuthResponse resp = new AuthResponse(user.getUsername(), token);
-                    return ServerResponse.ok().contentType(MediaType.APPLICATION_JSON).body(fromValue(resp));
+                    return ServerResponse.ok()
+                            .header("Authorization", "Bearer " + token)
+                            .header("Access-Control-Expose-Headers", "Authorization")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .body(fromValue(resp));
                 })
                 .switchIfEmpty(ServerResponse.status(401).contentType(MediaType.TEXT_PLAIN).body(fromValue("Invalid credentials")))
         );
