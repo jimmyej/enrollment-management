@@ -9,7 +9,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
@@ -34,7 +34,7 @@ class CourseFunctionalTest {
     @Autowired
     private CourseHandler courseHandler;
 
-    @MockBean
+    @MockitoBean
     private CourseRepository courseRepository;
 
     private List<Course> courses;
@@ -90,7 +90,7 @@ class CourseFunctionalTest {
         WebTestClient client = WebTestClient.bindToRouterFunction(config.courseRoutes(courseHandler))
                 .build();
 
-        Course course = courses.get(0);
+        Course course = courses.getFirst();
 
         given(courseRepository.findById("1")).willReturn(Mono.just(course));
 
@@ -150,7 +150,7 @@ class CourseFunctionalTest {
         WebTestClient client = WebTestClient.bindToRouterFunction(config.courseRoutes(courseHandler))
                 .build();
 
-        given(courseRepository.findById("1")).willReturn(Mono.just(courses.get(0)));
+        given(courseRepository.findById("1")).willReturn(Mono.just(courses.getFirst()));
         given(courseRepository.deleteById("1")).willReturn(Mono.empty());
 
         client.delete()

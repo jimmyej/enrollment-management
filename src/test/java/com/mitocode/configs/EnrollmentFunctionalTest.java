@@ -11,7 +11,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
@@ -37,7 +37,7 @@ class EnrollmentFunctionalTest {
     @Autowired
     private EnrollmentHandler enrollmentHandler;
 
-    @MockBean
+    @MockitoBean
     private EnrollmentRepository enrollmentRepository;
 
     private List<Enrollment> enrollments;
@@ -105,7 +105,7 @@ class EnrollmentFunctionalTest {
         WebTestClient client = WebTestClient.bindToRouterFunction(config.enrollmentRoutes(enrollmentHandler))
                 .build();
 
-        Enrollment enrollment = enrollments.get(0);
+        Enrollment enrollment = enrollments.getFirst();
 
         given(enrollmentRepository.findById("1")).willReturn(Mono.just(enrollment));
 
@@ -123,7 +123,7 @@ class EnrollmentFunctionalTest {
         WebTestClient client = WebTestClient.bindToRouterFunction(config.enrollmentRoutes(enrollmentHandler))
                 .build();
 
-        Enrollment enrollment = new Enrollment("1", LocalDateTime.now(), students.get(0), courses, true);
+        Enrollment enrollment = new Enrollment("1", LocalDateTime.now(), students.getFirst(), courses, true);
 
         given(enrollmentRepository.save(enrollment)).willReturn(Mono.just(enrollment));
 
@@ -144,7 +144,7 @@ class EnrollmentFunctionalTest {
         WebTestClient client = WebTestClient.bindToRouterFunction(config.enrollmentRoutes(enrollmentHandler))
                 .build();
 
-        Enrollment enrollment = new Enrollment("1", LocalDateTime.now(), students.get(0), courses, true);
+        Enrollment enrollment = new Enrollment("1", LocalDateTime.now(), students.getFirst(), courses, true);
 
         given(enrollmentRepository.findById(enrollment.getId())).willReturn(Mono.just(enrollment));
         given(enrollmentRepository.save(enrollment)).willReturn(Mono.just(enrollment));
@@ -165,7 +165,7 @@ class EnrollmentFunctionalTest {
         WebTestClient client = WebTestClient.bindToRouterFunction(config.enrollmentRoutes(enrollmentHandler))
                 .build();
 
-        given(enrollmentRepository.findById("1")).willReturn(Mono.just(enrollments.get(0)));
+        given(enrollmentRepository.findById("1")).willReturn(Mono.just(enrollments.getFirst()));
         given(enrollmentRepository.deleteById("1")).willReturn(Mono.empty());
 
         client.delete()

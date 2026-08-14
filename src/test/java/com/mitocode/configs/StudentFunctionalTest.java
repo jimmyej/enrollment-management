@@ -1,5 +1,7 @@
 package com.mitocode.configs;
 
+import com.cloudinary.Cloudinary;
+import com.cloudinary.Uploader;
 import com.mitocode.EnrollmentManagementApplication;
 import com.mitocode.documents.Student;
 import com.mitocode.handlers.StudentHandler;
@@ -9,18 +11,26 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.context.annotation.Import;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
+import org.springframework.http.client.MultipartBodyBuilder;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.web.reactive.server.WebTestClient;
+import org.springframework.web.reactive.function.BodyInserters;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 
@@ -34,8 +44,11 @@ class StudentFunctionalTest {
     @Autowired
     private StudentHandler studentHandler;
 
-    @MockBean
+    @MockitoBean
     private StudentRepository studentRepository;
+
+    @MockitoBean
+    private MediaConfig mediaConfig;
 
     private List<Student> students;
 
@@ -90,7 +103,7 @@ class StudentFunctionalTest {
         WebTestClient client = WebTestClient.bindToRouterFunction(config.studentRoutes(studentHandler))
                 .build();
 
-        Student student = students.get(0);
+        Student student = students.getFirst();
 
         given(studentRepository.findById("1")).willReturn(Mono.just(student));
 
@@ -150,7 +163,7 @@ class StudentFunctionalTest {
         WebTestClient client = WebTestClient.bindToRouterFunction(config.studentRoutes(studentHandler))
                 .build();
 
-        given(studentRepository.findById("1")).willReturn(Mono.just(students.get(0)));
+        given(studentRepository.findById("1")).willReturn(Mono.just(students.getFirst()));
         given(studentRepository.deleteById("1")).willReturn(Mono.empty());
 
         client.delete()
@@ -158,6 +171,73 @@ class StudentFunctionalTest {
                 .exchange()
                 .expectStatus()
                 .isNoContent();
+    }
+
+    @Test
+    void givenUploadStudentPhoto_thenStudentUpdated() {
+        WebTestClient client = WebTestClient.bindToRouterFunction(config.studentRoutes(studentHandler))
+                .build();
+
+        Student student = students.getFirst();
+        Cloudinary cloudinary = org.mockito.Mockito.mock(Cloudinary.class);
+        Uploader uploader = org.mockito.Mockito.mock(Uploader.class);
+
+        given(studentRepository.findById("1")).willReturn(Mono.just(student));
+        given(studentRepository.save(any(Student.class))).willReturn(Mono.just(student));
+        given(mediaConfig.hasAnyCloudinaryConfig()).willReturn(true);
+        given(mediaConfig.cloudinaryConfig()).willReturn(cloudinary);
+        given(cloudinary.uploader()).willReturn(uploader);
+        try {
+            given(uploader.upload(any(java.io.File.class), anyMap())).willReturn(Map.of(
+                    "url", "https://res.cloudinary.com/demo/student-photo.jpg",
+                    "public_id", "student-public-id"
+            ));
+        } catch (java.io.IOException e) {
+            throw new RuntimeException("Error stubbing Cloudinary upload", e);
+        }
+
+        MultipartBodyBuilder multipartBodyBuilder = new MultipartBodyBuilder();
+        multipartBodyBuilder.part("file",
+                        new ByteArrayResource("fake-image-content".getBytes(StandardCharsets.UTF_8)))
+                .filename("student-photo.jpg")
+                .contentType(MediaType.IMAGE_JPEG);
+
+        client.post()
+                .uri("/api/v1/students/1/upload")
+                .contentType(MediaType.MULTIPART_FORM_DATA)
+                .body(BodyInserters.fromMultipartData(multipartBodyBuilder.build()))
+                .exchange()
+                .expectStatus()
+                .isOk()
+                .expectBody(Student.class)
+                .value(studentResponse -> assertNotNull(studentResponse.getUrlPhoto()));
+
+        verify(studentRepository).save(any(Student.class));
+    }
+
+    @Test
+    void givenUnsupportedCloudinaryConfig_whenUploadStudentPhoto_thenInternalServerError() {
+        WebTestClient client = WebTestClient.bindToRouterFunction(config.studentRoutes(studentHandler))
+                .build();
+
+        given(studentRepository.findById("1")).willReturn(Mono.just(students.getFirst()));
+        given(mediaConfig.hasAnyCloudinaryConfig()).willReturn(false);
+
+        MultipartBodyBuilder multipartBodyBuilder = new MultipartBodyBuilder();
+        multipartBodyBuilder.part("file",
+                        new ByteArrayResource("fake-image-content".getBytes(StandardCharsets.UTF_8)))
+                .filename("student-photo.jpg")
+                .contentType(MediaType.IMAGE_JPEG);
+
+        client.post()
+                .uri("/api/v1/students/1/upload")
+                .contentType(MediaType.MULTIPART_FORM_DATA)
+                .body(BodyInserters.fromMultipartData(multipartBodyBuilder.build()))
+                .exchange()
+                .expectStatus()
+                .is5xxServerError()
+                .expectBody(String.class)
+                .isEqualTo("Cloudinary not configured. Set CLOUD_NAME/API_KEY/API_SECRET env vars or CLOUDINARY_URL.");
     }
 
 }
