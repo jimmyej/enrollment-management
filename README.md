@@ -63,7 +63,7 @@ Componentes transversales:
 - **`WebExceptionHandler`**: manejo centralizado de errores.
 - **`SecurityFilter`**: `WebFilter` reactivo que intercepta cada request.
 - **`RequestValidator`**: validación de payloads de entrada.
-- **`MediaConfig` / `MediaService`**: integración con **Cloudinary** para la carga de fotos de estudiantes.
+- **`MediaConfig` / `MediaService`**: integración con **Cloudinary** para la carga de fotos de estudiantes. Nota: las propiedades `CLOUD_NAME`/`API_KEY`/`API_SECRET` ahora aceptan valores por defecto vacíos en el código para evitar errores de creación de beans durante la ejecución de tests; en entornos de integración o producción se recomienda configurar las variables de entorno o los *secrets* del CI para usar credenciales reales de Cloudinary.
 - **`SwaggerConfig`**: agrupación y documentación de la API vía OpenAPI/Swagger.
 
 ## Tecnologías
@@ -331,11 +331,15 @@ La cobertura de código se calcula con **JaCoCo** (excluyendo la clase principal
 
 ## Integración continua (CI)
 
-El workflow de GitHub Actions (`.github/workflows/ci_cd.yml`) se ejecuta en cada `push` o `pull request` hacia `master`:
+El workflow de GitHub Actions (`.github/workflows/ci_cd.yml`) se ejecuta en cada `push` o `pull request` hacia `master`.
 
+Pasos principales:
 1. Checkout del código.
-2. Configuración de JDK 11 (Temurin) con caché de Maven.
-3. Build con `mvn -B package`, inyectando los secrets `CLOUD_NAME`, `API_KEY` y `API_SECRET`.
+2. Configuración de JDK 25 (Temurin) con caché de Maven.
+3. Ejecutar `mvn -B verify` (incluye tests y JaCoCo) y generar el reporte HTML de cobertura en `target/site/jacoco`.
+4. Subir `target/site/jacoco` como artifact llamado `jacoco-report`.
+
+Variables/Secrets usadas en CI: `CLOUD_NAME`, `API_KEY`, `API_SECRET`.
 
 ## Roadmap / Mejoras sugeridas
 
