@@ -168,36 +168,6 @@ public class RouterConfig {
             @RouterOperation(
                     path = STUDENTS_PATH_WITH_ID +"/upload",
                     produces = {
-                            MediaType.ALL_VALUE
-                    },
-                    consumes = {
-                            MediaType.ALL_VALUE
-                    },
-                    method = RequestMethod.PUT,
-                    beanClass = StudentHandler.class,
-                    beanMethod = "upload",
-                    operation = @Operation(
-                            operationId = "upload",
-                            responses = {
-                                    @ApiResponse(
-                                            responseCode = "200",
-                                            description = "successful operation",
-                                            content = @Content(schema = @Schema(
-                                                    implementation = Student.class
-                                            ))
-                                    )
-                            },
-                            requestBody = @RequestBody(
-                                    content = @Content(schema = @Schema(
-                                            implementation = Student.class
-                                    ))
-                            )
-
-                    )
-            ),
-            @RouterOperation(
-                    path = STUDENTS_PATH_WITH_ID +"/photo-reactive",
-                    produces = {
                             MediaType.APPLICATION_JSON_VALUE
                     },
                     consumes = {
@@ -261,8 +231,7 @@ public class RouterConfig {
                 .andRoute(GET(STUDENTS_PATH_WITH_ID), handler::findById)
                 .andRoute(POST(STUDENTS_BASE_PATH), handler::create)
                 .andRoute(PUT(STUDENTS_PATH_WITH_ID), handler::update)
-                .andRoute(PUT(STUDENTS_PATH_WITH_ID +"/upload").and(RequestPredicates.accept(MediaType.MULTIPART_FORM_DATA)), handler::upload)
-                .andRoute(POST(STUDENTS_PATH_WITH_ID +"/photo-reactive").and(RequestPredicates.accept(MediaType.MULTIPART_FORM_DATA)), handler::uploadReactive)
+                .andRoute(POST(STUDENTS_PATH_WITH_ID +"/upload").and(RequestPredicates.accept(MediaType.MULTIPART_FORM_DATA)), handler::uploadReactive)
                 .andRoute(DELETE(STUDENTS_PATH_WITH_ID), handler::delete);
     }
 
@@ -591,5 +560,10 @@ public class RouterConfig {
                 .andRoute(PUT(ENROLLMENTS_PATH_WITH_ID), handler::update)
                 .andRoute(DELETE(ENROLLMENTS_PATH_WITH_ID), handler::delete);
     }
-	
+    
+    @Bean
+    public org.springframework.web.reactive.function.server.RouterFunction<ServerResponse> authRoutes(com.mitocode.handlers.AuthHandler handler) {
+        return route(org.springframework.web.reactive.function.server.RequestPredicates.POST("/api/v1/auth/login").and(org.springframework.web.reactive.function.server.RequestPredicates.accept(MediaType.APPLICATION_JSON)), handler::login);
+    }
+
 }
