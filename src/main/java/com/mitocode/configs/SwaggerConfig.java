@@ -1,7 +1,8 @@
 package com.mitocode.configs;
 
-import io.swagger.v3.oas.models.media.StringSchema;
-import io.swagger.v3.oas.models.parameters.Parameter;
+import io.swagger.v3.oas.models.Components;
+import io.swagger.v3.oas.models.security.SecurityRequirement;
+import io.swagger.v3.oas.models.security.SecurityScheme;
 import org.springdoc.core.customizers.OpenApiCustomizer;
 import org.springdoc.core.models.GroupedOpenApi;
 import org.springframework.context.annotation.Bean;
@@ -49,30 +50,24 @@ public class SwaggerConfig {
 
         return openAPI -> {
             // Define bearer security scheme
-            io.swagger.v3.oas.models.security.SecurityScheme bearerScheme = new io.swagger.v3.oas.models.security.SecurityScheme()
-                    .type(io.swagger.v3.oas.models.security.SecurityScheme.Type.HTTP)
+            SecurityScheme bearerScheme = new SecurityScheme()
+                    .type(SecurityScheme.Type.HTTP)
                     .scheme("bearer")
                     .bearerFormat("JWT");
             if (openAPI.getComponents() == null) {
-                openAPI.setComponents(new io.swagger.v3.oas.models.Components());
+                openAPI.setComponents(new Components());
             }
             openAPI.getComponents().addSecuritySchemes("bearerAuth", bearerScheme);
 
             // Apply security requirement to all operations except auth endpoints
-            openAPI.getPaths().entrySet().forEach(entry -> {
-                String path = entry.getKey();
-                io.swagger.v3.oas.models.PathItem pathItem = entry.getValue();
-                pathItem.readOperations().forEach(operation -> {
-                    // Skip auth endpoints (sign-in / sign-up)
-                    if (path.startsWith("/api/v1/auth")) {
-                        return;
-                    }
-                    operation.addSecurityItem(new io.swagger.v3.oas.models.security.SecurityRequirement().addList("bearerAuth"));
-                    // keep userId header parameter for operations that require it
-                    operation.addParametersItem(new Parameter().name("userId").in("header").
-                            schema(new StringSchema().example("test")).required(false));
-                });
-            });
+            openAPI.getPaths().forEach((path, pathItem) -> pathItem.readOperations().forEach(operation -> {
+                // Skip auth endpoints (sign-in / sign-up)
+                if (path.startsWith("/api/v1/auth")) {
+                    return;
+                }
+                operation.addSecurityItem(new SecurityRequirement().addList("bearerAuth"));
+                // keep userId header parameter for operations that require it
+            }));
         };
     }
 }

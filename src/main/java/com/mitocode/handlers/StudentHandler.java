@@ -1,21 +1,9 @@
 package com.mitocode.handlers;
 
-import java.io.File;
-import java.io.IOException;
 import java.net.URI;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.attribute.FileAttribute;
-import java.nio.file.attribute.PosixFilePermission;
-import java.nio.file.attribute.PosixFilePermissions;
-import java.util.Map;
-import java.util.Set;
 
 import com.cloudinary.utils.ObjectUtils;
 import com.mitocode.configs.MediaConfig;
-import com.mitocode.services.MediaService;
-import org.cloudinary.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,8 +14,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.codec.multipart.FilePart;
 import org.springframework.http.codec.multipart.Part;
 import org.springframework.stereotype.Component;
-import org.springframework.util.MultiValueMap;
-import org.springframework.util.ResourceUtils;
 import org.springframework.web.reactive.function.BodyExtractors;
 import org.springframework.web.reactive.function.server.ServerRequest;
 import org.springframework.web.reactive.function.server.ServerResponse;
@@ -47,7 +33,6 @@ public class StudentHandler {
 	Logger logger = LoggerFactory.getLogger(StudentHandler.class);
 
 	private final StudentService studentService;
-	private final MediaService mediaService;
 	private final MediaConfig mediaConfig;
     private final RequestValidator requestValidator;
 
@@ -55,9 +40,8 @@ public class StudentHandler {
 	private static final String ITEM_ID = "id";
 
 	@Autowired
-	public StudentHandler(StudentService studentService, MediaService mediaService, MediaConfig mediaConfig, RequestValidator requestValidator){
+	public StudentHandler(StudentService studentService, MediaConfig mediaConfig, RequestValidator requestValidator){
 		this.studentService = studentService;
-		this.mediaService = mediaService;
 		this.mediaConfig = mediaConfig;
 		this.requestValidator = requestValidator;
 	}
@@ -134,181 +118,6 @@ public class StudentHandler {
                 )
                 .switchIfEmpty(ServerResponse.notFound().build());
     }
-
-	public Mono<ServerResponse> upload2(ServerRequest req){
-		String id = req.pathVariable(ITEM_ID);
-		String publicId = req.queryParam(PUBLIC_ID_LABEL).toString();
-
-		Mono<Student> monoBD = studentService.findById(id);
-		Mono<Student> monoStudent = req.body(BodyExtractors.toParts()).collectList().flatMap(parts -> {
-			try {
-				FilePart image = (FilePart) parts.get(0);
-
-				JSONObject json = mediaService.uploadImage(image, publicId);
-				String url = json.getString("url");
-				String publicIdValue = json.getString(PUBLIC_ID_LABEL);
-
-				Student student = new Student();
-				student.setUrlPhoto(url);
-				student.setPublicId(publicIdValue);
-				return Mono.just(student);
-
-			} catch (Exception e) {
-				return Mono.empty();
-			}
-		});
-
-		return monoBD
-				.zipWith(monoStudent, (db, s) -> {
-					db.setUrlPhoto(s.getUrlPhoto());
-					db.setPublicId(s.getPublicId());
-					return db;
-				})
-				.flatMap(studentService::update)
-				.flatMap(p -> ServerResponse.ok()
-						.contentType(MediaType.APPLICATION_JSON)
-						.body(fromValue(p))
-				)
-				.switchIfEmpty(ServerResponse.notFound().build());
-	}
-
-	public Mono<ServerResponse> upload3(ServerRequest req){
-		String id = req.pathVariable(ITEM_ID);
-		String publicId = req.queryParam(PUBLIC_ID_LABEL).toString();
-
-		if (!mediaConfig.hasAnyCloudinaryConfig()) {
-			return ServerResponse.status(HttpStatus.INTERNAL_SERVER_ERROR)
-				.contentType(MediaType.TEXT_PLAIN)
-				.body(fromValue("Cloudinary not configured. Set CLOUD_NAME/API_KEY/API_SECRET env vars or CLOUDINARY_URL."));
-		}
-		MultiValueMap<String, Part> formData = req.body(BodyExtractors.toMultipartData()).block();
-		FilePart fp = (FilePart) formData.toSingleValueMap().get("file");
-		Path path = Paths.get("/Users/jimmy/tmp/");
-		Set<PosixFilePermission> filePerm = PosixFilePermissions.fromString("rwxrwxrwx");
-		FileAttribute<Set<PosixFilePermission>> fileAttr = PosixFilePermissions.asFileAttribute(filePerm);
-
-		File file = null;
-		Student student = null;
-		try {
-			file = Files.createTempFile(path,"tmp", fp.filename(), fileAttr).toFile();
-			fp.transferTo(file).block();
-
-			Map<String, Object> uploadResult = mediaConfig.cloudinaryConfig().uploader().upload(file, ObjectUtils.asMap("resource_type", "auto"));
-			JSONObject json = new JSONObject(uploadResult);
-			String url = json.getString("url");
-			String publicIdValue = json.getString(PUBLIC_ID_LABEL);
-
-			student = new Student();
-			student.setUrlPhoto(url);
-			student.setPublicId(publicIdValue);
-		} catch (IOException e) {
-			logger.error(e.getMessage());
-		} finally {
-			file.delete();
-		}
-
-		Mono<Student> monoBD = studentService.findById(id);
-		Mono<Student> studentMono = Mono.just(student);
-
-		return studentMono.zipWith(monoBD, (s, db) -> {
-					db.setUrlPhoto(s.getUrlPhoto());
-					db.setPublicId(s.getPublicId());
-					return db;
-				})
-				.flatMap(studentService::update)
-				.flatMap(p -> ServerResponse.ok()
-						.contentType(MediaType.APPLICATION_JSON)
-						.body(fromValue(p))
-				)
-				.switchIfEmpty(ServerResponse.notFound().build());
-	}
-
-//	public Mono<String> uploadHandler(MultiValueMap<String, Part> parts){
-//
-//		return parts
-//				//.filter(part -> part instanceof FilePart) // only retain file parts
-//				.ofType(FilePart.class) // convert the flux to FilePart
-//				.flatMap(fm -> {
-//					try {
-//						return fm.transferTo(Files.createTempFile("temp", fm.filename())).thenReturn();
-//					} catch (IOException e) {
-//						e.printStackTrace();
-//					}
-//					return null;
-//				}).then
-//	}
-
-	public Mono<ServerResponse> upload(ServerRequest req){
-		String id = req.pathVariable(ITEM_ID);
-		String publicId = req.queryParam(PUBLIC_ID_LABEL).toString();
-
-		Mono<Student> monoBD = studentService.findById(id);
-		if (!mediaConfig.hasAnyCloudinaryConfig()) {
-			return ServerResponse.status(HttpStatus.INTERNAL_SERVER_ERROR)
-				.contentType(MediaType.TEXT_PLAIN)
-				.body(fromValue("Cloudinary not configured. Set CLOUD_NAME/API_KEY/API_SECRET env vars or CLOUDINARY_URL."));
-		}
-		Mono<Student> monoStudent = req.body(BodyExtractors.toMultipartData())//req.body(BodyExtractors.toParts()).collectList()
-
-				.flatMap(parts -> {
-					Map<String, Part> map = parts.toSingleValueMap();
-					FilePart filePart = (FilePart) map.get("file");
-					File file;
-					try {
-						/*file = Files.createTempFile("temp", filePart.filename()).toFile();
-						filePart.transferTo(file);*/
-
-						Path tempFile = Files.createTempFile("temp", filePart.filename());
-						filePart.transferTo(tempFile);
-						file = ResourceUtils.getFile(tempFile.toUri());
-
-						return Mono.just(file);
-					} catch (IOException e) {
-						logger.error(e.getMessage());
-						return Mono.error(e);
-					}
-				})
-				.flatMap(
-						f -> {
-							Student student = null;
-							if(publicId != null && !publicId.isEmpty() && !publicId.equals("Optional.empty")) {
-								try {
-									mediaConfig.cloudinaryConfig().uploader().destroy(publicId, ObjectUtils.emptyMap());
-								} catch (IOException e) {
-									logger.error(e.getMessage());
-								}
-							}
-							try {
-								Map<String, Object> uploadResult = mediaConfig.cloudinaryConfig().uploader().upload(f, ObjectUtils.emptyMap());
-								JSONObject json = new JSONObject(uploadResult);
-								String url = json.getString("url");
-								String publicIdValue = json.getString(PUBLIC_ID_LABEL);
-								student = new Student();
-								student.setUrlPhoto(url);
-								student.setPublicId(publicIdValue);
-								logger.info("Student {}", student);
-							} catch (IOException e) {
-								logger.error(e.getMessage());
-								return Mono.error(e);
-							}
-
-							return Mono.just(student);
-						}
-				).log();
-
-		return monoBD
-				.zipWith(monoStudent, (db, s) -> {
-					db.setUrlPhoto(s.getUrlPhoto());
-					db.setPublicId(s.getPublicId());
-					return db;
-				})
-				.flatMap(studentService::update)
-				.flatMap(p -> ServerResponse.ok()
-						.contentType(MediaType.APPLICATION_JSON)
-						.body(fromValue(p))
-				)
-				.switchIfEmpty(ServerResponse.notFound().build());
-	}
 
 	// Reactive, non-blocking upload: saves incoming multipart file, uploads to Cloudinary on boundedElastic,
 	// updates student doc and returns response. Temporary file is deleted after upload.
