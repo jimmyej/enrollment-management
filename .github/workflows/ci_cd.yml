@@ -19,6 +19,12 @@ jobs:
 
     runs-on: ubuntu-latest
 
+    services:
+      mongodb:
+        image: mongo:7
+        ports:
+          - 27017:27017
+
     steps:
     - uses: actions/checkout@v4
     - name: Set up JDK 25
@@ -32,6 +38,8 @@ jobs:
         CLOUD_NAME: ${{ secrets.CLOUD_NAME }}
         API_KEY: ${{ secrets.API_KEY }}
         API_SECRET: ${{ secrets.API_SECRET }}
+        MONGODB_URI: mongodb://localhost:27017/management-enrollment-db
+        MONGODB_DATABASE: management-enrollment-db
       run: mvn -B verify --file pom.xml
 
     - name: Upload JaCoCo HTML report
