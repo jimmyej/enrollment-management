@@ -563,8 +563,8 @@ public class RouterConfig {
     
     @Bean
     public org.springframework.web.reactive.function.server.RouterFunction<ServerResponse> authRoutes(com.mitocode.handlers.AuthHandler handler) {
-        return route(org.springframework.web.reactive.function.server.RequestPredicates.POST("/api/v1/auth/login").and(org.springframework.web.reactive.function.server.RequestPredicates.accept(MediaType.APPLICATION_JSON)), handler::login)
-                .andRoute(org.springframework.web.reactive.function.server.RequestPredicates.POST("/api/v1/auth/register").and(org.springframework.web.reactive.function.server.RequestPredicates.accept(MediaType.APPLICATION_JSON)), handler::register);
+        return route(org.springframework.web.reactive.function.server.RequestPredicates.POST("/api/v1/auth/sign-in").and(org.springframework.web.reactive.function.server.RequestPredicates.accept(MediaType.APPLICATION_JSON)), handler::login)
+                .andRoute(org.springframework.web.reactive.function.server.RequestPredicates.POST("/api/v1/auth/sign-up").and(org.springframework.web.reactive.function.server.RequestPredicates.accept(MediaType.APPLICATION_JSON)), handler::register);
     }
 
 }
