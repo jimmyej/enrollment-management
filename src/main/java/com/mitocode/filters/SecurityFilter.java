@@ -46,6 +46,14 @@ public class SecurityFilter implements WebFilter {
                 .header("roles", String.join(",", roles))
                 .build();
         ServerWebExchange mutatedExchange = exchange.mutate().request(mutatedReq).build();
+
+        // For API resources, echo the Authorization header in responses so clients can read/refresh token.
+        String requestPath = exchange.getRequest().getURI().getPath();
+        if (requestPath.startsWith("/api/v1/students") || requestPath.startsWith("/api/v1/courses") || requestPath.startsWith("/api/v1/enrollments")) {
+            mutatedExchange.getResponse().getHeaders().add("Authorization", "Bearer " + token);
+            mutatedExchange.getResponse().getHeaders().add("Access-Control-Expose-Headers", "Authorization");
+        }
+
         return chain.filter(mutatedExchange);
     }
 }
