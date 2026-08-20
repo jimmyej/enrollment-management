@@ -270,7 +270,7 @@ Todos los endpoints devuelven `404 Not Found` cuando el recurso solicitado por `
 
 ## Modelo de datos
 
-Documentos MongoDB principales (paquete `com.mitocode.documents`):
+Documentos MongoDB principales (paquete `com.jse.documents`):
 
 **Student**
 ```json

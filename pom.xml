@@ -137,8 +137,9 @@
 				<version>0.8.15</version>
 				<configuration>
 					<excludes>
-						<exclude>com/courses/EnrollmentManagementAppApplication.class</exclude>
-						<exclude>com/courses/entities/**</exclude>
+						<exclude>com/jse/EnrollmentManagementAppApplication.class</exclude>
+						<exclude>com/jse/documents/**</exclude>
+						<exclude>com/jse/exceptions/**</exclude>
 					</excludes>
 				</configuration>
 				<executions>
